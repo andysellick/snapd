@@ -206,8 +206,8 @@ var lenny = {
                 }
             }
             //begin caching other images in album
-            curralb.pictures = lenny.general.preloadImages(curralb.pictures,'/public/img/pics/');
-            curralb.thumbs = lenny.general.preloadImages(curralb.thumbs,'/public/img/thumbs/');
+            curralb.pictures = lenny.general.preloadImages(curralb.pictures,'');
+            curralb.thumbs = lenny.general.preloadImages(curralb.thumbs,'');
             curralb.currpic = currpic;
             curralb.albumurl = albumurl; // + currpic.toString(); //data['link'];moo
             curralb.thumbsurl = '';

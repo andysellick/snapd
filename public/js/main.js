@@ -20,10 +20,11 @@ var albumsobj = function(){
     this.thumbslinkaj = [];
 }
 
+var sitebase = ''; //FIXME will need to change this to snapd/ at some point
 var urlobj = function(){
     this.base;
     this.getBase = function(){
-        this.base = window.location['protocol'] + '//' + window.location['host'] + '/';
+        this.base = window.location['protocol'] + '//' + window.location['host'] + sitebase;
     }
 }
 
@@ -45,6 +46,7 @@ var lenny = {
             var html = $('#sitecontent').html();
             var ptitle = document.title;
             url = siteurl.base + url;
+            console.log('updatePageURL: ',url);
             window.history.pushState({"html":html,"pageTitle":ptitle},"",url);
         },
         //preload images
@@ -62,10 +64,11 @@ var lenny = {
         //update the current pic value of the album then reload the album
         changePic: function(pic){
             curralb.currpic += pic;
-            lenny.general.updateAlbumPic();
+            lenny.markup.updateAlbumPic();
             lenny.general.updatePageURL(curralb.url + curralb.currpic.toString());
         },
         switchToAlbum: function(){
+            console.log('switchToAlbum');
             $('#albumlist').hide();
             $('#album').show();
             $('#thumbs').hide();
@@ -85,18 +88,35 @@ var lenny = {
     },
     ajax: {
         //load album list and populate
+        //we call this on page load for the homepage and also on clicking the 'home' link
         loadAlbumList: function(){
+            //check to see if we already have retrieved the list of albums and stored in the js
             if(allalbs.names.length){
-                lenny.markup.generateAlbums();
+                if($('#albumlist').html().trim() == ''){ //don't generate markup if it's already there
+                    lenny.markup.generateAlbums();
+                }
                 lenny.data.resetAlbum();
+                lenny.navigation.switchToAlbumList();
             }
+            //if we don't have the list of albums stored, do an ajax request to get them
             else {
                 $.ajax({
                     type: "GET",
-                    url: siteurl.base + 'home-data/'
+                    url: siteurl.base + '/home-data/'
                 }).done(function(data){
                     data = JSON.parse(data);
-                    lenny.data.loadAlbums(data);
+                    //given a chunk of JSON, populate and store the album list
+                    for(var i in data){
+                        allalbs.names[i] = data[i]['name'];
+                        allalbs.thumbs[i] = data[i]['thumb'];
+                        allalbs.descriptions[i] = data[i]['intro'];
+                        allalbs.dates[i] = data[i]['date'];
+                        allalbs.albumlink[i] = data[i]['albumlink'];
+                        allalbs.thumbslink[i] = data[i]['thumbslink'];
+                        allalbs.albumlinkaj[i] = data[i]['albumlinkaj'];
+                        allalbs.thumbslinkaj[i] = data[i]['thumbslinkaj'];
+                    }
+                    allalbs.thumbs = lenny.general.preloadImages(allalbs.thumbs,'/public/img/thumbs/');
                     lenny.markup.generateAlbums();
                 }).fail(function(){
                     console.log('error');
@@ -118,7 +138,7 @@ var lenny = {
                     //determine which pic to show based on the last chunk of the url
                     lenny.data.loadAlbum(data,0,url);
                     lenny.general.updatePageTitle(data['title'] + ' | ' + document.title);
-                    lenny.general.updatePageURL(url);
+                    lenny.general.updatePageURL(url); //fixme this should be in the navigation function?
                     lenny.data.showThumbs();
                 }).fail(function(){
                     console.log('error');
@@ -137,13 +157,17 @@ var lenny = {
                     data = JSON.parse(data);
                     lenny.data.loadAlbum(data,pic,url);
                     lenny.general.updatePageTitle(data['title'] + ' | ' + document.title);
-                    lenny.data.updateAlbumPic();
+                    lenny.markup.updateAlbumPic();
                     lenny.navigation.switchToAlbum();
                 }).fail(function(){
                     console.log('error');
                 });
             }
-            lenny.navigation.switchToAlbum();
+            else {
+                //get the picture we need to show, update the html and switch to album
+                lenny.markup.updateAlbumPic();
+                console.log(curralb.url);
+            }
         },
     },
     data: {
@@ -176,6 +200,21 @@ var lenny = {
             curralb.currpic = currpic;
             curralb.url = url; //data['link'];
         },
+        showThumbs: function(){
+            //only populate the dom using the data if the dom is not already populated
+            if($('#thumbs').html().trim() == ''){
+                for(var i = 0; i < allalbs.names.length; i++){
+                    var $el = $('<div/>');
+                    //$('<a/>').attr('data-loadalbum',curralb.url + i).attr('href',curralb.url + i).html('<img src="public/img/thumbs/' + curralb.thumbs[i] + '" alt="img' +  '"/>').appendTo($el);
+                    $('<a/>').attr('data-loadalbum',curralb.url + i).attr('href',curralb.url + i).html(curralb.thumbs[i]).appendTo($el);
+                    $('<p/>').html(curralb.descriptions[i]).appendTo($el);
+                    $el.appendTo('#thumbs');
+                }
+            }
+            lenny.navigation.switchToThumbs();
+        }
+    },
+    markup: {
         //populate required pic, metadata, next/prev links
         updateAlbumPic: function(){
             $('[data-pic]').html(curralb.pictures[curralb.currpic]);
@@ -194,35 +233,6 @@ var lenny = {
                 $('[data-prev]').hide();
             }
         },
-        //given a chunk of JSON, populate the album list
-        loadAlbums: function(data){
-            for(var i in data){
-                allalbs.names[i] = data[i]['name'];
-                allalbs.thumbs[i] = data[i]['thumb'];
-                allalbs.descriptions[i] = data[i]['intro'];
-                allalbs.dates[i] = data[i]['date'];
-                allalbs.albumlink[i] = data[i]['albumlink'];
-                allalbs.thumbslink[i] = data[i]['thumbslink'];
-                allalbs.albumlinkaj[i] = data[i]['albumlinkaj'];
-                allalbs.thumbslinkaj[i] = data[i]['thumbslinkaj'];
-            }
-            allalbs.thumbs = lenny.general.preloadImages(allalbs.thumbs,'/public/img/thumbs/');
-        },
-        showThumbs: function(){
-            //only populate the dom using the data if the dom is not already populated
-            if($('#thumbs').html().trim() == ''){
-                for(var i = 0; i < allalbs.names.length; i++){
-                    var $el = $('<div/>');
-                    //$('<a/>').attr('data-loadalbum',curralb.url + i).attr('href',curralb.url + i).html('<img src="public/img/thumbs/' + curralb.thumbs[i] + '" alt="img' +  '"/>').appendTo($el);
-                    $('<a/>').attr('data-loadalbum',curralb.url + i).attr('href',curralb.url + i).html(curralb.thumbs[i]).appendTo($el);
-                    $('<p/>').html(curralb.descriptions[i]).appendTo($el);
-                    $el.appendTo('#thumbs');
-                }
-            }
-            lenny.navigation.switchToThumbs();
-        }
-    },
-    markup: {
         generateAlbums: function(){
             //only populate the dom using the data if the dom is not already populated
             if($('#albumlist').html().trim() == ''){
@@ -260,7 +270,6 @@ $(document).ready(function(){
         e.preventDefault();
         //go to home page
         if(typeof $(this).attr('data-home') !== typeof undefined && $(this).attr('data-home') !== false){
-            lenny.data.resetAlbum();
             lenny.ajax.loadAlbumList();
         }
         //open album view

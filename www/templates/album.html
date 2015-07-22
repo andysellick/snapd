@@ -3,13 +3,13 @@
 {% block title %}{{ title }} | {{ block.super }}{% endblock title %}
 
 {% block album %}
-    template
+    TEMPLATE
     <div>
         {% if prev %}
-            <a href="/{{ prev }}" data-prev="">Previous</a>
+            <a href="{{ prev }}" data-prev="">Previous</a>
         {% endif %}
         {% if next %}
-            <a href="/{{ next }}" data-next="">Next</a>
+            <a href="{{ next }}" data-next="">Next</a>
         {% endif %}
         
         <a href="{{ thumbslink }}">View thumbs</a>
@@ -17,7 +17,7 @@
 
     {% if pic %}
         <div data-pic="">
-            <img src="/public/img/pics/{{ pic }}"/>
+            <img src="{{ pic }}"/>
         </div>
     {% endif %}
 
@@ -29,7 +29,7 @@
 {% block scripts %}
     <script>
         $(document).ready(function(){
-            lenny.ajax.initAlbum('{{ link }}','{{ linkaj }}','{{ currpic }}');
+            lenny.ajax.initAlbum('{{ link }}','{{ linkaj }}',{{ currpic }});
         });
     </script>
 {% endblock scripts %}

@@ -1,7 +1,7 @@
 {% extends 'layout.html' %}
 
 {% block albumlist %}
-    this is the template
+    TEMPLATE
     {% for listAlbums %}
         <div>
             <a href="{{ albumlink }}" data-loadalbum="{{ albumlinkaj }}">
@@ -12,7 +12,7 @@
             <p>{{ intro }}</p>
             <p>
                 <a href="{{ albumlink }}" data-loadalbum="{{ albumlinkaj }}">Album</a>
-                <a href="{{ thumbslink }}" data-loadthumbs="{{ albumlinkaj }}">Thumbs</a>
+                <a href="{{ thumbslink }}" data-loadalbum="{{ thumbslinkaj }}">Thumbs</a>
             </p>
         </div>
     {% endfor %}

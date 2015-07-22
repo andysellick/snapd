@@ -6,6 +6,8 @@ var albumobj = function(){
     this.pictures = [];
     this.descriptions = [];
     this.currpic = 0;
+    this.albumurl;
+    this.thumbsurl;
     this.url;
 }
 //object to hold minimal details of all albums
@@ -20,7 +22,7 @@ var albumsobj = function(){
     this.thumbslinkaj = [];
 }
 
-var sitebase = ''; //FIXME will need to change this to snapd/ at some point
+var sitebase = '/snapd'; //FIXME will need to change this to snapd/ at some point
 var urlobj = function(){
     this.base;
     this.getBase = function(){
@@ -65,14 +67,18 @@ var lenny = {
         changePic: function(pic){
             curralb.currpic += pic;
             lenny.markup.updateAlbumPic();
-            lenny.general.updatePageURL(curralb.url + curralb.currpic.toString());
+            lenny.general.updatePageURL(curralb.albumurl + curralb.currpic.toString());
         },
         switchToAlbum: function(){
-            console.log('switchToAlbum');
             $('#albumlist').hide();
             $('#album').show();
             $('#thumbs').hide();
-            lenny.general.updatePageURL(curralb.url);
+            //manually append the current picture to the end of the URL
+            var pic = 0;
+            if(curralb.currpic != -1){
+                pic = curralb.currpic;
+            }
+            lenny.general.updatePageURL(curralb.albumurl + curralb.currpic);
         },
         switchToAlbumList: function(){
             $('#albumlist').show();
@@ -84,6 +90,7 @@ var lenny = {
             $('#albumlist').hide();
             $('#album').hide();
             $('#thumbs').show();
+            lenny.general.updatePageURL(curralb.thumbsurl);
         }
     },
     ajax: {
@@ -116,7 +123,7 @@ var lenny = {
                         allalbs.albumlinkaj[i] = data[i]['albumlinkaj'];
                         allalbs.thumbslinkaj[i] = data[i]['thumbslinkaj'];
                     }
-                    allalbs.thumbs = lenny.general.preloadImages(allalbs.thumbs,'/public/img/thumbs/');
+                    allalbs.thumbs = lenny.general.preloadImages(allalbs.thumbs,siteurl.base + '/public/img/thumbs/');
                     lenny.markup.generateAlbums();
                 }).fail(function(){
                     console.log('error');
@@ -127,7 +134,7 @@ var lenny = {
         //on thumbs page load, check if album has been loaded into js, if not, do so
         loadThumbs: function(url,urlaj){
             if(curralb.descriptions.length){
-                lenny.data.showThumbs();
+                lenny.markup.showThumbs();
             }
             else {
                 $.ajax({
@@ -138,8 +145,8 @@ var lenny = {
                     //determine which pic to show based on the last chunk of the url
                     lenny.data.loadAlbum(data,0,url);
                     lenny.general.updatePageTitle(data['title'] + ' | ' + document.title);
-                    lenny.general.updatePageURL(url); //fixme this should be in the navigation function?
-                    lenny.data.showThumbs();
+                    lenny.markup.showThumbs();
+                    lenny.navigation.switchToThumbs();
                 }).fail(function(){
                     console.log('error');
                 });
@@ -147,9 +154,12 @@ var lenny = {
         },
         //on album page load, check if album has been loaded into js, if not, do so
         //FIXME this is partly duplicating what we're already doing when clicking on 'album'
-        initAlbum: function(url,urlaj,pic){
+        initAlbum: function(url,urlaj){
             if(!curralb.pictures.length){
+                pic = url.split('/');
+                pic = pic[pic.length - 1];
                 pic = parseInt(pic);
+                console.log(pic);
                 $.ajax({
                     type: "GET",
                     url: siteurl.base + urlaj
@@ -166,7 +176,7 @@ var lenny = {
             else {
                 //get the picture we need to show, update the html and switch to album
                 lenny.markup.updateAlbumPic();
-                console.log(curralb.url);
+                lenny.navigation.switchToAlbum();
             }
         },
     },
@@ -176,12 +186,13 @@ var lenny = {
             curralb.pictures = [];
             curralb.descriptions = [];
             curralb.currpic = -1;
-            curralb.url;
+            curralb.albumurl = '';
+            curralb.thumbsurl = '';
             //$('#album').html(''); //fixme we probably do want to do this but currently there's no function that recreates the HTML within this structure
             //$('#thumbs').html('');
         },
         //given a chunk of JSON, populate the current album
-        loadAlbum: function(data,currpic,url){
+        loadAlbum: function(data,currpic,albumurl){
             lenny.data.resetAlbum();
             for(var i in data){
                 if(data.hasOwnProperty(i)){
@@ -198,20 +209,8 @@ var lenny = {
             curralb.pictures = lenny.general.preloadImages(curralb.pictures,'/public/img/pics/');
             curralb.thumbs = lenny.general.preloadImages(curralb.thumbs,'/public/img/thumbs/');
             curralb.currpic = currpic;
-            curralb.url = url; //data['link'];
-        },
-        showThumbs: function(){
-            //only populate the dom using the data if the dom is not already populated
-            if($('#thumbs').html().trim() == ''){
-                for(var i = 0; i < allalbs.names.length; i++){
-                    var $el = $('<div/>');
-                    //$('<a/>').attr('data-loadalbum',curralb.url + i).attr('href',curralb.url + i).html('<img src="public/img/thumbs/' + curralb.thumbs[i] + '" alt="img' +  '"/>').appendTo($el);
-                    $('<a/>').attr('data-loadalbum',curralb.url + i).attr('href',curralb.url + i).html(curralb.thumbs[i]).appendTo($el);
-                    $('<p/>').html(curralb.descriptions[i]).appendTo($el);
-                    $el.appendTo('#thumbs');
-                }
-            }
-            lenny.navigation.switchToThumbs();
+            curralb.albumurl = albumurl; // + currpic.toString(); //data['link'];moo
+            curralb.thumbsurl = '';
         }
     },
     markup: {
@@ -221,13 +220,13 @@ var lenny = {
             //console.log(curralb.pictures[curralb.currpic]);
             $('[data-desc]').html(curralb.descriptions[curralb.currpic]);
             if(curralb.currpic < curralb.pictures.length){
-                $('[data-next]').attr('href',curralb.url + (curralb.currpic + 1)).show();
+                $('[data-next]').attr('href',curralb.albumurl + (curralb.currpic + 1)).show();
             }
             else {
                 $('[data-next]').hide();
             }
             if(curralb.currpic > 0){
-                $('[data-prev]').attr('href',curralb.url + (curralb.currpic - 1)).show();
+                $('[data-prev]').attr('href',curralb.albumurl + (curralb.currpic - 1)).show();
             }
             else {
                 $('[data-prev]').hide();
@@ -251,6 +250,17 @@ var lenny = {
                 }
             }
             lenny.navigation.switchToAlbumList();
+        },
+        showThumbs: function(){
+            //only populate the dom using the data if the dom is not already populated
+            if($('#thumbs').html().trim() == ''){
+                for(var i = 0; i < allalbs.names.length; i++){
+                    var $el = $('<div/>');
+                    $('<a/>').attr('data-loadalbum',curralb.albumurl + i).attr('href',curralb.albumurl + i).html(curralb.thumbs[i]).appendTo($el);
+                    $('<p/>').html(curralb.descriptions[i]).appendTo($el);
+                    $el.appendTo('#thumbs');
+                }
+            }
         }
     }
 };
@@ -276,14 +286,16 @@ $(document).ready(function(){
         else if(typeof $(this).attr('data-loadalbum') !== typeof undefined && $(this).attr('data-loadalbum') !== false){
             var urlaj = $(this).attr('data-loadalbum'); //actual url for the ajax call, returns json
             var url = $(this).attr('href'); //real world url, also used if js disabled
-            lenny.ajax.initAlbum(url,urlaj,0);
+            lenny.ajax.initAlbum(url,urlaj);
         }
         //open thumbs view of album
+        /*
         else if(typeof $(this).attr('data-loadthumbs') !== typeof undefined && $(this).attr('data-loadthumbs') !== false){
             var urlaj = $(this).attr('data-loadthumbs'); //actual url for the ajax call, returns json
             var url = $(this).attr('href'); //real world url, also used if js disabled
             lenny.ajax.loadThumbs(url,urlaj);
         }
+        */
         //navigate to next pic in album
         else if(typeof $(this).attr('data-next') !== typeof undefined && $(this).attr('data-next') !== false){
             lenny.navigation.changePic(1);

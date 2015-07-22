@@ -1,0 +1,34 @@
+{% extends 'layout.html' %}
+
+{% block title %}{{ title }} | {{ block.super }}{% endblock title %}
+
+{% block album %}
+    <div>
+        {% if prev %}
+            <a href="/{{ prev }}" data-prev="">Previous</a>
+        {% endif %}
+        {% if next %}
+            <a href="/{{ next }}" data-next="">Next</a>
+        {% endif %}
+        
+        <a href="{{ thumbslink }}">View thumbs</a>
+    </div>
+
+    {% if pic %}
+        <div data-pic="">
+            <img src="/public/img/pics/{{ pic }}"/>
+        </div>
+    {% endif %}
+
+    {% if desc %}
+        <div data-desc="">{{ desc }}</div>
+    {% endif %}
+{% endblock album %}
+
+{% block scripts %}
+    <script>
+        $(document).ready(function(){
+            lenny.ajax.initAlbum('{{ link }}','{{ linkaj }}','{{ currpic }}');
+        });
+    </script>
+{% endblock scripts %}

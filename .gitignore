@@ -1,0 +1,5 @@
+# ignore all php, images, and some of the data
+classes/
+public/img/pics/
+public/img/thumbs/
+www/xml/

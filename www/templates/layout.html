@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div id="sitecontent">
+        <div id="albumlist">
+            {% block albumlist %}{% endblock albumlist %}
+        </div>
+    
+        <div id="album">
+            {% block album %}
+                <div>
+                    <a data-prev="">Previous</a>
+                    <a data-next="">Next</a>
+                </div>
+        
+                <div data-pic=""></div>
+                <div data-desc=""></div>
+            {% endblock album %}
+        </div>
+    
+        <div id="thumbs">
+            {% block thumbs %}{% endblock thumbs %}
+        </div>
+    </div>
+{% endblock content %}

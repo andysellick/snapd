@@ -6,8 +6,6 @@ var albumobj = function(){
     this.pictures = [];
     this.descriptions = [];
     this.currpic = 0;
-    this.albumurl;
-    this.thumbsurl;
     this.url;
 }
 //object to hold minimal details of all albums
@@ -22,11 +20,15 @@ var albumsobj = function(){
     this.thumbslinkaj = [];
 }
 
-var sitebase = '/snapd'; //FIXME will need to change this to snapd/ at some point
 var urlobj = function(){
     this.base;
+    this.fullpath;
+    this.sitebase;
+
     this.getBase = function(){
-        this.base = window.location['protocol'] + '//' + window.location['host'] + sitebase;
+        this.sitebase = '/snapd'; //FIXME will need to change this to snapd/ at some point
+        this.base = window.location['protocol'] + '//' + window.location['host'];
+        this.fullpath = this.base + this.sitebase;
     }
 }
 
@@ -84,7 +86,7 @@ var lenny = {
             $('#albumlist').show();
             $('#album').hide();
             $('#thumbs').hide();
-            lenny.general.updatePageURL('');
+            lenny.general.updatePageURL(siteurl.sitebase);
         },
         switchToThumbs: function(){
             $('#albumlist').hide();
@@ -109,7 +111,7 @@ var lenny = {
             else {
                 $.ajax({
                     type: "GET",
-                    url: siteurl.base + '/home-data/'
+                    url: siteurl.fullpath + '/home-data/'
                 }).done(function(data){
                     data = JSON.parse(data);
                     //given a chunk of JSON, populate and store the album list
@@ -123,6 +125,7 @@ var lenny = {
                         allalbs.albumlinkaj[i] = data[i]['albumlinkaj'];
                         allalbs.thumbslinkaj[i] = data[i]['thumbslinkaj'];
                     }
+                    //lenny.general.updatePageURL(siteurl.sitebase);
                     allalbs.thumbs = lenny.general.preloadImages(allalbs.thumbs,siteurl.base + '/public/img/thumbs/');
                     lenny.markup.generateAlbums();
                 }).fail(function(){
@@ -159,10 +162,10 @@ var lenny = {
                 pic = url.split('/');
                 pic = pic[pic.length - 1];
                 pic = parseInt(pic);
-                console.log(pic);
+                console.log(url,urlaj,pic);
                 $.ajax({
                     type: "GET",
-                    url: siteurl.base + urlaj
+                    url: siteurl.fullpath + urlaj
                 }).done(function(data){
                     data = JSON.parse(data);
                     lenny.data.loadAlbum(data,pic,url);
@@ -192,7 +195,7 @@ var lenny = {
             //$('#thumbs').html('');
         },
         //given a chunk of JSON, populate the current album
-        loadAlbum: function(data,currpic,albumurl){
+        loadAlbum: function(data,currpic,url){
             lenny.data.resetAlbum();
             for(var i in data){
                 if(data.hasOwnProperty(i)){
@@ -209,8 +212,8 @@ var lenny = {
             curralb.pictures = lenny.general.preloadImages(curralb.pictures,'');
             curralb.thumbs = lenny.general.preloadImages(curralb.thumbs,'');
             curralb.currpic = currpic;
-            curralb.albumurl = albumurl; // + currpic.toString(); //data['link'];moo
-            curralb.thumbsurl = '';
+            console.log('loadAlbum ',url);
+            curralb.url = url; // + currpic.toString(); //data['link'];moo
         }
     },
     markup: {
@@ -231,6 +234,7 @@ var lenny = {
             else {
                 $('[data-prev]').hide();
             }
+            $('[data-viewthumbs]').attr('href','');
         },
         generateAlbums: function(){
             //only populate the dom using the data if the dom is not already populated

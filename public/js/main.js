@@ -69,7 +69,7 @@ var lenny = {
         changePic: function(pic){
             curralb.currpic += pic;
             lenny.markup.updateAlbumPic();
-            lenny.general.updatePageURL(curralb.albumurl + curralb.currpic.toString());
+            lenny.general.updatePageURL(curralb.url + curralb.currpic.toString());
         },
         switchToAlbum: function(){
             $('#albumlist').hide();
@@ -80,7 +80,7 @@ var lenny = {
             if(curralb.currpic != -1){
                 pic = curralb.currpic;
             }
-            lenny.general.updatePageURL(curralb.albumurl + curralb.currpic);
+            lenny.general.updatePageURL(curralb.url + curralb.currpic);
         },
         switchToAlbumList: function(){
             $('#albumlist').show();
@@ -125,7 +125,6 @@ var lenny = {
                         allalbs.albumlinkaj[i] = data[i]['albumlinkaj'];
                         allalbs.thumbslinkaj[i] = data[i]['thumbslinkaj'];
                     }
-                    //lenny.general.updatePageURL(siteurl.sitebase);
                     allalbs.thumbs = lenny.general.preloadImages(allalbs.thumbs,siteurl.base + '/public/img/thumbs/');
                     lenny.markup.generateAlbums();
                 }).fail(function(){
@@ -156,13 +155,17 @@ var lenny = {
             }
         },
         //on album page load, check if album has been loaded into js, if not, do so
-        //FIXME this is partly duplicating what we're already doing when clicking on 'album'
         initAlbum: function(url,urlaj){
             if(!curralb.pictures.length){
-                pic = url.split('/');
-                pic = pic[pic.length - 1];
+                //this bit is slightly clunky, extract and then remove the pic number from the end of the URL
+                //FIXME assumes a certain structure of URL, can't necessarily guarantee this
+                //might be better to separate out url and pic in the data attributes to begin with
+                url = url.split('/');
+                pic = url[url.length - 1];
                 pic = parseInt(pic);
-                console.log(url,urlaj,pic);
+                url.pop(); //remove the last item from the url, i.e. the pic number
+                url = url.toString();
+                url = url.replace(/,/gi,'/') + '/';
                 $.ajax({
                     type: "GET",
                     url: siteurl.fullpath + urlaj
@@ -189,8 +192,7 @@ var lenny = {
             curralb.pictures = [];
             curralb.descriptions = [];
             curralb.currpic = -1;
-            curralb.albumurl = '';
-            curralb.thumbsurl = '';
+            curralb.url = '';
             //$('#album').html(''); //fixme we probably do want to do this but currently there's no function that recreates the HTML within this structure
             //$('#thumbs').html('');
         },
@@ -223,13 +225,13 @@ var lenny = {
             //console.log(curralb.pictures[curralb.currpic]);
             $('[data-desc]').html(curralb.descriptions[curralb.currpic]);
             if(curralb.currpic < curralb.pictures.length){
-                $('[data-next]').attr('href',curralb.albumurl + (curralb.currpic + 1)).show();
+                $('[data-next]').attr('href',curralb.url + (curralb.currpic + 1)).show();
             }
             else {
                 $('[data-next]').hide();
             }
             if(curralb.currpic > 0){
-                $('[data-prev]').attr('href',curralb.albumurl + (curralb.currpic - 1)).show();
+                $('[data-prev]').attr('href',curralb.url + (curralb.currpic - 1)).show();
             }
             else {
                 $('[data-prev]').hide();
@@ -260,7 +262,7 @@ var lenny = {
             if($('#thumbs').html().trim() == ''){
                 for(var i = 0; i < allalbs.names.length; i++){
                     var $el = $('<div/>');
-                    $('<a/>').attr('data-loadalbum',curralb.albumurl + i).attr('href',curralb.albumurl + i).html(curralb.thumbs[i]).appendTo($el);
+                    $('<a/>').attr('data-loadalbum',curralb.url + i).attr('href',curralb.url + i).html(curralb.thumbs[i]).appendTo($el);
                     $('<p/>').html(curralb.descriptions[i]).appendTo($el);
                     $el.appendTo('#thumbs');
                 }
